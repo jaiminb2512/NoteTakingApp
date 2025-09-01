@@ -1,5 +1,10 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
+import helmet from 'helmet';
+
+// Import routes
+import userRoutes from './routes/user.routes';
 
 // Import utilities
 import ApiResponseUtil from './utils/apiResponse';
@@ -12,6 +17,18 @@ dotenv.config();
 const app: Application = express();
 const PORT: number = parseInt(process.env.PORT || '5000', 10);
 
+// Middleware
+app.use(helmet()); // Security headers
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true
+}));
+app.use(express.json()); // Parse JSON bodies
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+
+// API Routes
+app.use('/api/users', userRoutes);
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
     return ApiResponseUtil.success(res, {
@@ -21,11 +38,22 @@ app.get('/health', (req: Request, res: Response) => {
     }, 'Server is running');
 });
 
+// 404 handler
+app.use((req: Request, res: Response) => {
+    return ApiResponseUtil.notFound(res, 'Endpoint not found');
+});
+
+// Error handler
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    console.error(err.stack);
+    return ApiResponseUtil.internalError(res, 'Something went wrong');
+});
+
 // Connect to MongoDB and start the server
 const startServer = async () => {
     try {
         // Connect to database
-        connectDB()
+        await connectDB();
 
         // Start the server
         app.listen(PORT, () => {
