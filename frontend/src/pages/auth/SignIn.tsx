@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { userService } from "../../services/userService";
 import { useAuth } from "../../contexts/AuthContext";
-import { useForm } from "react-hook-form";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import {
@@ -26,16 +26,16 @@ import Icon from "../../assets/icon.png";
 
 interface SignInFormData {
     email: string;
-    otp?: string;
+    otp: string;
 }
 
 // ✅ Validation schema
 const schema = yup.object().shape({
     email: yup.string().email("Invalid email").required("Email is required"),
-    otp: yup.string().when('$otpSent', {
+    otp: yup.string().default("").when('$otpSent', {
         is: true,
         then: (schema) => schema.required("OTP is required"),
-        otherwise: (schema) => schema.notRequired(),
+        otherwise: (schema) => schema.default(""),
     }),
 });
 
@@ -95,7 +95,7 @@ const Logo = styled("img")(() => ({
     height: "28px",
 }));
 
-const FormWrapper = styled(Box)(() => ({
+const FormWrapper = styled('form')(() => ({
     width: "100%",
     maxWidth: "360px",
     display: "flex",
@@ -149,12 +149,13 @@ const SignIn = () => {
         formState: { errors },
         getValues,
     } = useForm<SignInFormData>({
-        resolver: yupResolver<SignInFormData>(schema),
+        mode: "onBlur",
+        resolver: yupResolver(schema),
         context: { otpSent },
         defaultValues: {
             email: "",
             otp: "",
-        },
+        } as SignInFormData,
     });
 
     const showNotification = (message: string, severity: 'success' | 'error') => {
@@ -229,7 +230,7 @@ const SignIn = () => {
         }
     };
 
-    const onSubmit = async (data: SignInFormData) => {
+    const onSubmit: SubmitHandler<SignInFormData> = async (data) => {
         try {
             if (!otpSent) {
                 await handleGetOTP(data);
@@ -253,7 +254,6 @@ const SignIn = () => {
                 </LogoWrapper>
 
                 <FormWrapper
-                    component="form"
                     onSubmit={handleSubmit(onSubmit)}
                     noValidate
                 >

@@ -1,8 +1,6 @@
-// Export the main application
-export { default as app } from './app';
+// Export the main application (named export only)
+export { app } from './app';
 
-// Export utility functions
-export { default as ApiResponseUtil, ApiResponse, PaginatedResponse } from './utils/apiResponse';
-
-// Export types
-export type { ApiResponse, PaginatedResponse };
+// Export utility class and types separately to avoid duplication
+export { default as ApiResponseUtil } from './utils/apiResponse';
+export type { ApiResponse, PaginatedResponse } from './utils/apiResponse';
