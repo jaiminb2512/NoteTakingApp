@@ -7,7 +7,8 @@
         "build": "tsc",
         "start": "node dist/app.js",
         "dev": "nodemon src/app.ts",
-        "test": "jest"
+        "test": "jest",
+        "vercel-build": "tsc"
     },
     "keywords": [
         "notes",
@@ -42,6 +43,7 @@
         "@types/jsonwebtoken": "^9.0.2",
         "@types/node": "^20.5.0",
         "@types/nodemailer": "^6.4.9",
+        "@vercel/node": "^3.0.0",
         "ts-node-dev": "^2.0.0",
         "typescript": "^5.1.6"
     }
