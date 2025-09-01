@@ -15,8 +15,11 @@ class EmailService {
             throw new Error('BREVO_API_KEY is not defined in environment variables');
         }
 
-        // ✅ Pass API key as a string
-        this.apiInstance = new brevo.TransactionalEmailsApi(apiKeyValue);
+        // ✅ Correct: no args in constructor
+        this.apiInstance = new brevo.TransactionalEmailsApi();
+
+        // ✅ Set API key separately
+        this.apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, apiKeyValue);
     }
 
     /**
@@ -52,7 +55,6 @@ class EmailService {
 
         try {
             await this.apiInstance.sendTransacEmail(sendSmtpEmail);
-            console.log(`OTP email sent to ${user.email}`);
         } catch (error) {
             console.error('Error sending OTP email:', error);
             throw new Error('Failed to send OTP email');
@@ -88,10 +90,8 @@ class EmailService {
 
         try {
             await this.apiInstance.sendTransacEmail(sendSmtpEmail);
-            console.log(`Welcome email sent to ${user.email}`);
         } catch (error) {
             console.error('Error sending welcome email:', error);
-            // Don't throw error for welcome email as it's not critical
         }
     }
 }
