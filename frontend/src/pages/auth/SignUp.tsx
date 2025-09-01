@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -10,25 +10,32 @@ import {
     Typography,
     InputAdornment,
     IconButton,
+    Alert,
+    Snackbar,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import { userService } from '../../services/userService';
 import signUpBg from '../../assets/signUp.png';
 import Icon from '../../assets/icon.png';
 
 interface SignUpFormData {
     fullName: string;
     email: string;
-    dateOfBirth: string;
-    otp: string;
+    dob: string;  // Changed from dateOfBirth to dob
+    otp?: string;
 }
 
-const schema = yup.object().shape({
+const schema: yup.ObjectSchema<SignUpFormData> = yup.object().shape({
     fullName: yup.string().required('Full name is required'),
     email: yup.string().email('Invalid email').required('Email is required'),
-    dateOfBirth: yup.string().required('Date of birth is required'),
-    otp: yup.string().required('OTP is required'),
+    dob: yup.string().required('Date of birth is required'),
+    otp: yup.string().when('$otpSent', {
+        is: true,
+        then: (schema) => schema.required('OTP is required'),
+        otherwise: (schema) => schema.notRequired(),
+    }),
 });
 
 const PageWrapper = styled(Box)({
@@ -212,30 +219,97 @@ const RightColumn = styled(Box)({
 });
 
 export default function SignUp() {
+    const navigate = useNavigate();
     const [showOTP, setShowOTP] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
-
-    const { register, handleSubmit, formState: { errors } } = useForm<SignUpFormData>({
-        resolver: yupResolver(schema),
+    const [loading, setLoading] = useState(false);
+    const [alert, setAlert] = useState<{
+        open: boolean;
+        message: string;
+        severity: 'success' | 'error';
+    }>({
+        open: false,
+        message: '',
+        severity: 'success',
     });
 
-    const handleGetOTP = async (email: string) => {
-        // API call to send OTP
-        console.log('Sending OTP to:', email);
-        setOtpSent(true);
+    const { register, handleSubmit, formState: { errors }, getValues } = useForm<SignUpFormData>({
+        resolver: yupResolver(schema),
+        context: { otpSent },
+        defaultValues: {
+            fullName: '',
+            email: '',
+            dob: '',
+            otp: undefined
+        }
+    });
+
+    const showNotification = (message: string, severity: 'success' | 'error') => {
+        setAlert({
+            open: true,
+            message,
+            severity,
+        });
     };
 
-    const handleResendOTP = () => {
-        // Handle OTP resend logic
-        console.log('Resending OTP...');
+    const handleGetOTP = async (data: SignUpFormData) => {
+        try {
+            setLoading(true);
+            const response = await userService.register({
+                fullName: data.fullName,
+                email: data.email,
+                dob: data.dob,
+            });
+            setOtpSent(true);
+            showNotification(response.message, 'success');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+            showNotification(errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const onSubmit = (data: SignUpFormData) => {
+    const handleResendOTP = async () => {
+        try {
+            setLoading(true);
+            const email = getValues('email');
+            const response = await userService.resendOTP(email);
+            showNotification(response.message, 'success');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+            showNotification(errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOTP = async (data: SignUpFormData) => {
+        try {
+            setLoading(true);
+            await userService.verifyOTP({
+                email: data.email,
+                otp: data.otp!,
+            });
+
+            showNotification('Registration successful! Redirecting to sign in...', 'success');
+            // Navigate to sign in page after successful registration
+            setTimeout(() => {
+                navigate('/signin');
+            }, 1500);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+            showNotification(errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const onSubmit = async (data: SignUpFormData) => {
         if (!otpSent) {
-            handleGetOTP(data.email);
+            await handleGetOTP(data);
         } else {
-            console.log('Submitting data:', data);
-            // API integration will be added later
+            await handleVerifyOTP(data);
         }
     };
 
@@ -262,6 +336,7 @@ export default function SignUp() {
                             {...register('fullName')}
                             error={!!errors.fullName}
                             helperText={errors.fullName?.message}
+                            disabled={otpSent || loading}
                         />
 
                         <StyledTextField
@@ -278,9 +353,10 @@ export default function SignUp() {
                             InputLabelProps={{
                                 shrink: true,
                             }}
-                            {...register('dateOfBirth')}
-                            error={!!errors.dateOfBirth}
-                            helperText={errors.dateOfBirth?.message}
+                            {...register('dob')}
+                            error={!!errors.dob}
+                            helperText={errors.dob?.message}
+                            disabled={otpSent || loading}
                         />
 
                         <StyledTextField
@@ -290,6 +366,7 @@ export default function SignUp() {
                             {...register('email')}
                             error={!!errors.email}
                             helperText={errors.email?.message}
+                            disabled={otpSent || loading}
                         />
 
                         {otpSent && (
@@ -301,6 +378,7 @@ export default function SignUp() {
                                     {...register('otp')}
                                     error={!!errors.otp}
                                     helperText={errors.otp?.message}
+                                    disabled={loading}
                                     InputProps={{
                                         endAdornment: (
                                             <InputAdornment position="end">
@@ -315,14 +393,21 @@ export default function SignUp() {
                                         ),
                                     }}
                                 />
-                                <ResendOTP onClick={handleResendOTP}>
+                                <ResendOTP
+                                    onClick={handleResendOTP}
+                                    sx={{ opacity: loading ? 0.7 : 1, pointerEvents: loading ? 'none' : 'auto' }}
+                                >
                                     Resend OTP
                                 </ResendOTP>
                             </>
                         )}
 
-                        <StyledButton type="submit">
-                            {otpSent ? 'Sign up' : 'Get OTP'}
+                        <StyledButton
+                            type="submit"
+                            disabled={loading}
+                            sx={{ opacity: loading ? 0.7 : 1 }}
+                        >
+                            {loading ? 'Please wait...' : otpSent ? 'Sign up' : 'Get OTP'}
                         </StyledButton>
 
                         <Typography
@@ -345,6 +430,21 @@ export default function SignUp() {
                 </ContentContainer>
             </LeftColumn>
             <RightColumn />
+
+            <Snackbar
+                open={alert.open}
+                autoHideDuration={6000}
+                onClose={() => setAlert({ ...alert, open: false })}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Alert
+                    onClose={() => setAlert({ ...alert, open: false })}
+                    severity={alert.severity}
+                    sx={{ width: '100%' }}
+                >
+                    {alert.message}
+                </Alert>
+            </Snackbar>
         </PageWrapper>
     );
 }

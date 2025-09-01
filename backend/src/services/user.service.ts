@@ -157,7 +157,6 @@ class UserService {
     async updateUser(id: string, updates: Partial<IUser>): Promise<IUser> {
         // Remove sensitive fields from updates
         const safeUpdates = { ...updates };
-        delete safeUpdates.password;
         delete safeUpdates.otp;
         delete safeUpdates.otpExpiry;
         delete safeUpdates.isEmailVerified;

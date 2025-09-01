@@ -1,7 +1,8 @@
 // src/pages/SignIn/SignIn.tsx
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { userService } from "../../services/userService";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -14,16 +15,27 @@ import {
     IconButton,
     Checkbox,
     FormControlLabel,
+    Alert,
+    Snackbar,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { Email, Visibility, VisibilityOff, Key } from "@mui/icons-material";
 import signUpBg from "../../assets/signUp.png";
 import Icon from "../../assets/icon.png";
 
+interface SignInFormData {
+    email: string;
+    otp?: string;
+}
+
 // ✅ Validation schema
 const schema = yup.object().shape({
     email: yup.string().email("Invalid email").required("Email is required"),
-    otp: yup.string().required("OTP is required"),
+    otp: yup.string().when('$otpSent', {
+        is: true,
+        then: (schema) => schema.required("OTP is required"),
+        otherwise: (schema) => schema.notRequired(),
+    }),
 });
 
 // ✅ Styled Components with MUI
@@ -112,21 +124,99 @@ const SignUpText = styled(Typography)(() => ({
 // ✅ Component
 const SignIn = () => {
     const [showOtp, setShowOtp] = useState(false);
+    const [otpSent, setOtpSent] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+    const [alert, setAlert] = useState<{
+        open: boolean;
+        message: string;
+        severity: 'success' | 'error';
+    }>({
+        open: false,
+        message: '',
+        severity: 'success',
+    });
 
     const {
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm({
-        resolver: yupResolver(schema),
+        getValues,
+    } = useForm<SignInFormData>({
+        resolver: yupResolver<SignInFormData>(schema),
+        context: { otpSent },
         defaultValues: {
-            email: "jonas_kahnwald@gmail.com",
+            email: "",
             otp: "",
         },
     });
 
-    const onSubmit = (data: any) => {
-        console.log("Sign In Data:", data);
+    const showNotification = (message: string, severity: 'success' | 'error') => {
+        setAlert({
+            open: true,
+            message,
+            severity,
+        });
+    };
+
+    const handleGetOTP = async (data: SignInFormData) => {
+        try {
+            setLoading(true);
+            await userService.initiateLogin(data.email);
+            setOtpSent(true);
+            showNotification('OTP sent to your email', 'success');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+            showNotification(errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendOTP = async () => {
+        try {
+            setLoading(true);
+            const email = getValues('email');
+            await userService.initiateLogin(email);
+            showNotification('OTP resent to your email', 'success');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+            showNotification(errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOTP = async (data: SignInFormData) => {
+        try {
+            setLoading(true);
+            const response = await userService.verifyLogin({
+                email: data.email,
+                otp: data.otp!,
+            });
+
+            // Store the token in localStorage
+            localStorage.setItem('token', response.data?.token || '');
+
+            showNotification('Login successful!', 'success');
+            // Navigate to home page after successful login
+            setTimeout(() => {
+                navigate('/');
+            }, 1500);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+            showNotification(errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const onSubmit = async (data: SignInFormData) => {
+        if (!otpSent) {
+            await handleGetOTP(data);
+        } else {
+            await handleVerifyOTP(data);
+        }
     };
 
     return (
@@ -165,37 +255,48 @@ const SignIn = () => {
                         }}
                     />
 
-                    {/* OTP */}
-                    <TextField
-                        label="OTP"
-                        type={showOtp ? "text" : "password"}
-                        fullWidth
-                        {...register("otp")}
-                        error={!!errors.otp}
-                        helperText={errors.otp?.message as string}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <Key />
-                                </InputAdornment>
-                            ),
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <IconButton onClick={() => setShowOtp(!showOtp)}>
-                                        {showOtp ? <VisibilityOff /> : <Visibility />}
-                                    </IconButton>
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
+                    {/* OTP Field - Only show after email is submitted */}
+                    {otpSent && (
+                        <>
+                            <TextField
+                                label="OTP"
+                                type={showOtp ? "text" : "password"}
+                                fullWidth
+                                {...register("otp")}
+                                error={!!errors.otp}
+                                helperText={errors.otp?.message as string}
+                                disabled={loading}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Key />
+                                        </InputAdornment>
+                                    ),
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton onClick={() => setShowOtp(!showOtp)}>
+                                                {showOtp ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                }}
+                            />
 
-                    {/* Resend OTP */}
-                    <Typography
-                        variant="body2"
-                        sx={{ color: "#2563eb", cursor: "pointer", fontWeight: 500 }}
-                    >
-                        Resend OTP
-                    </Typography>
+                            {/* Resend OTP */}
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: "#2563eb",
+                                    cursor: loading ? "default" : "pointer",
+                                    fontWeight: 500,
+                                    opacity: loading ? 0.7 : 1,
+                                }}
+                                onClick={loading ? undefined : handleResendOTP}
+                            >
+                                Resend OTP
+                            </Typography>
+                        </>
+                    )}
 
                     {/* Keep me logged in */}
                     <FormControlLabel
@@ -205,8 +306,17 @@ const SignIn = () => {
                     />
 
                     {/* Button */}
-                    <StyledButton type="submit" fullWidth>
-                        Sign In
+                    <StyledButton
+                        type="submit"
+                        fullWidth
+                        disabled={loading}
+                        sx={{ opacity: loading ? 0.7 : 1 }}
+                    >
+                        {loading
+                            ? "Please wait..."
+                            : otpSent
+                                ? "Sign In"
+                                : "Get OTP"}
                     </StyledButton>
 
                     {/* Sign up link */}
@@ -218,6 +328,21 @@ const SignIn = () => {
 
             {/* Right Panel (hidden on mobile) */}
             <RightPanel />
+
+            <Snackbar
+                open={alert.open}
+                autoHideDuration={6000}
+                onClose={() => setAlert({ ...alert, open: false })}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Alert
+                    onClose={() => setAlert({ ...alert, open: false })}
+                    severity={alert.severity}
+                    sx={{ width: '100%' }}
+                >
+                    {alert.message}
+                </Alert>
+            </Snackbar>
         </Container>
     );
 };
