@@ -13,9 +13,8 @@ export class NoteService {
     /**
      * Create a new note
      */
-    async createNote(userId: string, title: string, content: string): Promise<INote> {
+    async createNote(userId: string, content: string): Promise<INote> {
         const note = new Note({
-            title,
             content,
             user: new Types.ObjectId(userId)
         });

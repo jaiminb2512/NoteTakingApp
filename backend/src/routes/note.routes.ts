@@ -9,13 +9,11 @@ const noteController = new NoteController();
 
 // Validation middleware
 const validateNoteCreate = validate([
-    body('title').trim().notEmpty().withMessage('Title is required'),
     body('content').trim().notEmpty().withMessage('Content is required')
 ]);
 
 const validateNoteUpdate = validate([
     param('id').isMongoId().withMessage('Invalid note ID'),
-    body('title').trim().notEmpty().withMessage('Title is required'),
     body('content').trim().notEmpty().withMessage('Content is required')
 ]);
 

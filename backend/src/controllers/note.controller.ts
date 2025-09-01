@@ -14,14 +14,14 @@ export class NoteController {
      */
     createNote = async (req: Request, res: Response) => {
         try {
-            const { title, content } = req.body;
+            const { content } = req.body;
             const userId = req.user?._id;
 
             if (!userId) {
                 return ApiResponseUtil.unauthorized(res, 'User not authenticated');
             }
 
-            const note = await this.noteService.createNote(userId, title, content);
+            const note = await this.noteService.createNote(userId, content);
             return ApiResponseUtil.created(res, note, 'Note created successfully');
         } catch (error) {
             return ApiResponseUtil.internalError(res, 'Error creating note', error as string);
@@ -91,14 +91,14 @@ export class NoteController {
     updateNote = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const { title, content } = req.body;
+            const { content } = req.body;
             const userId = req.user?._id;
 
             if (!userId) {
                 return ApiResponseUtil.unauthorized(res, 'User not authenticated');
             }
 
-            const updatedNote = await this.noteService.updateNote(id, userId, { title, content });
+            const updatedNote = await this.noteService.updateNote(id, userId, { content });
 
             if (!updatedNote) {
                 return ApiResponseUtil.notFound(res, 'Note not found');

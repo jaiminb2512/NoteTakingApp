@@ -8,7 +8,8 @@ export class UserController {
      */
     async register(req: Request, res: Response) {
         try {
-            const user = await userService.createUser(req.body);
+            const { email, fullName, dob } = req.body;
+            const user = await userService.createUser({ email, fullName, dob: new Date(dob) });
             return ApiResponseUtil.created(res, user, 'User registered successfully. Please check your email for verification code.');
         } catch (error: any) {
             return ApiResponseUtil.badRequest(res, error.message);
@@ -16,12 +17,25 @@ export class UserController {
     }
 
     /**
-     * Login user
+     * Initiate login by sending OTP
      */
-    async login(req: Request, res: Response) {
+    async initiateLogin(req: Request, res: Response) {
         try {
-            const { email, password } = req.body;
-            const { user, token } = await userService.loginUser(email, password);
+            const { email } = req.body;
+            await userService.initiateLogin(email);
+            return ApiResponseUtil.success(res, null, 'OTP sent successfully. Please check your email.');
+        } catch (error: any) {
+            return ApiResponseUtil.badRequest(res, error.message);
+        }
+    }
+
+    /**
+     * Complete login with OTP
+     */
+    async loginWithOtp(req: Request, res: Response) {
+        try {
+            const { email, otp } = req.body;
+            const { user, token } = await userService.loginWithOtp(email, otp);
             return ApiResponseUtil.success(res, { user, token }, 'Login successful');
         } catch (error: any) {
             return ApiResponseUtil.unauthorized(res, error.message);
@@ -70,25 +84,19 @@ export class UserController {
      */
     async updateProfile(req: Request, res: Response) {
         try {
-            const user = await userService.updateUser(req.user._id, req.body);
+            const { fullName, dob } = req.body;
+            const updates = {
+                ...(fullName && { fullName }),
+                ...(dob && { dob: new Date(dob) })
+            };
+            const user = await userService.updateUser(req.user._id, updates);
             return ApiResponseUtil.success(res, user, 'Profile updated successfully');
         } catch (error: any) {
             return ApiResponseUtil.badRequest(res, error.message);
         }
     }
 
-    /**
-     * Change password
-     */
-    async changePassword(req: Request, res: Response) {
-        try {
-            const { currentPassword, newPassword } = req.body;
-            await userService.changePassword(req.user._id, currentPassword, newPassword);
-            return ApiResponseUtil.success(res, null, 'Password changed successfully');
-        } catch (error: any) {
-            return ApiResponseUtil.badRequest(res, error.message);
-        }
-    }
+
 
     /**
      * Delete user account

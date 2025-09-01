@@ -4,9 +4,8 @@ import { generateAuthToken } from '../middleware/auth';
 
 interface CreateUserInput {
     email: string;
-    password: string;
-    firstName?: string;
-    lastName?: string;
+    fullName: string;
+    dob: Date;
 }
 
 interface LoginResponse {
@@ -46,20 +45,40 @@ class UserService {
     }
 
     /**
-     * Login user
+     * Initiate login by sending OTP
      */
-    async loginUser(email: string, password: string): Promise<LoginResponse> {
+    async initiateLogin(email: string): Promise<void> {
         // Find user
         const user = await User.findOne({ email });
         if (!user) {
-            throw new Error('Invalid email or password');
+            throw new Error('No user found with this email');
         }
 
-        // Check password
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            throw new Error('Invalid email or password');
+        // Generate and set OTP
+        const otp = user.generateOtp(5); // 5 minutes expiry for login OTP
+        await user.save();
+
+        // Send OTP email
+        await emailService.sendOtpEmail(user, otp);
+    }
+
+    /**
+     * Complete login with OTP
+     */
+    async loginWithOtp(email: string, otp: string): Promise<LoginResponse> {
+        const user = await User.findOne({ email });
+        if (!user) {
+            throw new Error('User not found');
         }
+
+        if (user.otp !== otp || user.isOtpExpired()) {
+            throw new Error('Invalid or expired OTP');
+        }
+
+        // Clear OTP after successful verification
+        user.otp = undefined;
+        user.otpExpiry = undefined;
+        await user.save();
 
         // Generate token
         const token = generateAuthToken(user._id);
@@ -156,25 +175,7 @@ class UserService {
         return user;
     }
 
-    /**
-     * Change password
-     */
-    async changePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
-        const user = await User.findById(id);
-        if (!user) {
-            throw new Error('User not found');
-        }
 
-        // Verify old password
-        const isMatch = await user.comparePassword(oldPassword);
-        if (!isMatch) {
-            throw new Error('Current password is incorrect');
-        }
-
-        // Update password
-        user.password = newPassword;
-        await user.save();
-    }
 
     /**
      * Delete user

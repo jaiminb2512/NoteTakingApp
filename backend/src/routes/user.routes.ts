@@ -12,31 +12,36 @@ const registerValidation = [
         .isEmail()
         .withMessage(ValidationMessages.email)
         .normalizeEmail(),
-    body('password')
-        .isLength({ min: 6 })
-        .withMessage(ValidationMessages.password)
-        .matches(/\d/)
-        .withMessage('Password must contain at least one number'),
-    body('firstName')
-        .optional()
-        .isLength({ max: 50 })
-        .withMessage(ValidationMessages.maxLength('First name', 50))
+    body('fullName')
+        .notEmpty()
+        .withMessage(ValidationMessages.required('Full name'))
+        .isLength({ max: 100 })
+        .withMessage(ValidationMessages.maxLength('Full name', 100))
         .trim(),
-    body('lastName')
-        .optional()
-        .isLength({ max: 50 })
-        .withMessage(ValidationMessages.maxLength('Last name', 50))
-        .trim()
+    body('dob')
+        .notEmpty()
+        .withMessage(ValidationMessages.required('Date of birth'))
+        .isISO8601()
+        .withMessage('Invalid date format')
+        .custom((value) => {
+            const date = new Date(value);
+            const now = new Date();
+            const minDate = new Date('1900-01-01');
+            if (date > now) {
+                throw new Error('Date of birth cannot be in the future');
+            }
+            if (date < minDate) {
+                throw new Error('Date of birth cannot be before 1900');
+            }
+            return true;
+        })
 ];
 
-const loginValidation = [
+const initiateLoginValidation = [
     body('email')
         .isEmail()
         .withMessage(ValidationMessages.email)
-        .normalizeEmail(),
-    body('password')
-        .notEmpty()
-        .withMessage(ValidationMessages.required('Password'))
+        .normalizeEmail()
 ];
 
 const otpValidation = [
@@ -52,39 +57,41 @@ const otpValidation = [
 ];
 
 const updateProfileValidation = [
-    body('firstName')
+    body('fullName')
         .optional()
-        .isLength({ max: 50 })
-        .withMessage(ValidationMessages.maxLength('First name', 50))
-        .trim(),
-    body('lastName')
-        .optional()
-        .isLength({ max: 50 })
-        .withMessage(ValidationMessages.maxLength('Last name', 50))
-        .trim()
-];
-
-const changePasswordValidation = [
-    body('currentPassword')
         .notEmpty()
-        .withMessage(ValidationMessages.required('Current password')),
-    body('newPassword')
-        .isLength({ min: 6 })
-        .withMessage(ValidationMessages.password)
-        .matches(/\d/)
-        .withMessage('Password must contain at least one number')
+        .withMessage(ValidationMessages.required('Full name'))
+        .isLength({ max: 100 })
+        .withMessage(ValidationMessages.maxLength('Full name', 100))
+        .trim(),
+    body('dob')
+        .optional()
+        .isISO8601()
+        .withMessage('Invalid date format')
+        .custom((value) => {
+            const date = new Date(value);
+            const now = new Date();
+            const minDate = new Date('1900-01-01');
+            if (date > now) {
+                throw new Error('Date of birth cannot be in the future');
+            }
+            if (date < minDate) {
+                throw new Error('Date of birth cannot be before 1900');
+            }
+            return true;
+        })
 ];
 
 // Public routes
 router.post('/register', validate(registerValidation), userController.register);
-router.post('/login', validate(loginValidation), userController.login);
+router.post('/login/initiate', validate(initiateLoginValidation), userController.initiateLogin);
+router.post('/login/verify', validate(otpValidation), userController.loginWithOtp);
 router.post('/verify-otp', validate(otpValidation), userController.verifyOtp);
 router.post('/resend-otp', validate([body('email').isEmail()]), userController.resendOtp);
 
 // Protected routes
 router.get('/me', auth, userController.getProfile);
 router.patch('/me', auth, validate(updateProfileValidation), userController.updateProfile);
-router.post('/change-password', auth, validate(changePasswordValidation), userController.changePassword);
 router.delete('/me', auth, userController.deleteAccount);
 
 export default router;
