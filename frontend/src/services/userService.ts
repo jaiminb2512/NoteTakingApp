@@ -43,6 +43,22 @@ class UserService {
     async updateProfile(data: Partial<RegisterUserData>) {
         return api.updateUserProfile(data);
     }
+
+    async getNotes(params: { page: number; limit: number }) {
+        return api.getNotes(params);
+    }
+
+    async createNote(data: { content: string }) {
+        return api.createNote(data);
+    }
+
+    async updateNote(id: string, data: { content?: string }) {
+        return api.updateNote(id, data);
+    }
+
+    async deleteNote(id: string) {
+        return api.deleteNote(id);
+    }
 }
 
 export const userService = new UserService();

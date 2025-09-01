@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
+import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { API_ENDPOINTS } from '../config/apiEndpoints';
 
 // Types
@@ -7,6 +7,12 @@ export interface ApiResponse<T = any> {
     success: boolean;
     message: string;
     data?: T;
+    pagination?: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
 }
 
 export interface ErrorResponse {
@@ -22,7 +28,7 @@ if (!BASE_URL) {
 }
 
 class Api {
-    private instance: AxiosInstance;
+    private instance;
 
     constructor() {
         this.instance = axios.create({
@@ -39,7 +45,7 @@ class Api {
     private setupInterceptors() {
         // Request interceptor
         this.instance.interceptors.request.use(
-            (config) => {
+            (config: InternalAxiosRequestConfig) => {
                 const token = localStorage.getItem('token');
                 if (token) {
                     config.headers.Authorization = `Bearer ${token}`;
@@ -63,12 +69,13 @@ class Api {
                 }
 
                 if (error.response?.status === 401) {
+                    // Clear token only. Let caller decide navigation to avoid full page reloads.
                     localStorage.removeItem('token');
-                    window.location.href = '/signin';
+                    return Promise.reject({ message: 'Unauthorized', status: 401 });
                 }
 
                 const message = (error.response?.data as ErrorResponse)?.message || 'Something went wrong';
-                return Promise.reject({ message });
+                return Promise.reject({ message, status: error.response?.status });
             }
         );
     }
@@ -126,7 +133,7 @@ class Api {
     }
 
     async verifyLogin(data: { email: string; otp: string }) {
-        return this.request<{ token: string }>(
+        return this.request<{ token: string; user?: any }>(
             'post',
             API_ENDPOINTS.AUTH.LOGIN_VERIFY,
             data
@@ -141,8 +148,8 @@ class Api {
     }
 
     // Notes APIs
-    async createNote(data: { title: string; content: string }) {
-        return this.request<{ note: any }>(
+    async createNote(data: { content: string }) {
+        return this.request<any>(
             'post',
             API_ENDPOINTS.NOTES.CREATE,
             data
@@ -150,7 +157,7 @@ class Api {
     }
 
     async getNotes(params?: { page?: number; limit?: number }) {
-        return this.request<{ notes: any[]; total: number }>(
+        return this.request<any>(
             'get',
             API_ENDPOINTS.NOTES.GET_ALL,
             undefined,

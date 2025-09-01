@@ -48,6 +48,19 @@ export class NoteController {
             }
 
             const result = await this.noteService.getNotes(userId, page, limit);
+
+            if (result.total === 0) {
+                return ApiResponseUtil.success(res, {
+                    data: [],
+                    pagination: {
+                        page: 1,
+                        limit,
+                        total: 0,
+                        totalPages: 0
+                    }
+                }, 'No notes have been created yet');
+            }
+
             return ApiResponseUtil.paginated(
                 res,
                 result.notes,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { userService } from "../../services/userService";
+import { useAuth } from "../../contexts/AuthContext";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -43,6 +44,7 @@ const Container = styled(Box)(({ theme }) => ({
     display: "flex",
     minHeight: "100vh",
     background: "#fff",
+    position: 'relative',
     [theme.breakpoints.down("md")]: {
         flexDirection: "column",
         justifyContent: "center",
@@ -83,6 +85,9 @@ const LogoWrapper = styled(Box)(() => ({
     alignItems: "center",
     gap: "0.5rem",
     marginBottom: "2rem",
+    position: 'absolute',
+    top: '1.5rem',
+    left: '1.5rem',
 }));
 
 const Logo = styled("img")(() => ({
@@ -127,6 +132,7 @@ const SignIn = () => {
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { setAuthState } = useAuth();
     const [alert, setAlert] = useState<{
         open: boolean;
         message: string;
@@ -195,14 +201,26 @@ const SignIn = () => {
                 otp: data.otp!,
             });
 
-            // Store the token in localStorage
-            localStorage.setItem('token', response.data?.token || '');
+            if (response.success && response.data) {
+                // Persist token and user
+                localStorage.setItem('token', response.data.token || '');
+                if (response.data.user) {
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                }
+
+                // Set auth state with user data from login response
+                setAuthState({
+                    isAuthenticated: true,
+                    user: response.data.user || null
+                });
+            } else {
+                throw new Error('Login failed');
+            }
 
             showNotification('Login successful!', 'success');
-            // Navigate to home page after successful login
-            setTimeout(() => {
-                navigate('/');
-            }, 1500);
+            // Navigate to home page immediately after successful login
+            navigate('/', { replace: true });
+            return;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'An error occurred';
             showNotification(errorMessage, 'error');
@@ -212,10 +230,14 @@ const SignIn = () => {
     };
 
     const onSubmit = async (data: SignInFormData) => {
-        if (!otpSent) {
-            await handleGetOTP(data);
-        } else {
-            await handleVerifyOTP(data);
+        try {
+            if (!otpSent) {
+                await handleGetOTP(data);
+            } else {
+                await handleVerifyOTP(data);
+            }
+        } catch (error) {
+            console.error('Form submission error:', error);
         }
     };
 
@@ -230,7 +252,11 @@ const SignIn = () => {
                     </Typography>
                 </LogoWrapper>
 
-                <FormWrapper component="form" onSubmit={handleSubmit(onSubmit)}>
+                <FormWrapper
+                    component="form"
+                    onSubmit={handleSubmit(onSubmit)}
+                    noValidate
+                >
                     <Typography variant="h4" fontWeight="bold">
                         Sign In
                     </Typography>

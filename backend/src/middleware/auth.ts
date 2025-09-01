@@ -23,7 +23,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction): Pro
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
-        const user = await User.findOne({ _id: decoded.id, isActive: true });
+        const user = await User.findOne({ _id: decoded.id });
 
         if (!user) {
             return ApiResponseUtil.unauthorized(res, 'User not found or inactive');
