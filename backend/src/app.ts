@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 
 // Import utilities
 import ApiResponseUtil from './utils/apiResponse';
+import connectDB from './utils/dbConnect';
 
 // Load environment variables
 dotenv.config();
@@ -20,10 +21,23 @@ app.get('/health', (req: Request, res: Response) => {
     }, 'Server is running');
 });
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-});
+// Connect to MongoDB and start the server
+const startServer = async () => {
+    try {
+        // Connect to database
+        connectDB()
+
+        // Start the server
+        app.listen(PORT, () => {
+            console.log(`Server is running on http://localhost:${PORT}`);
+            console.log(`Health check: http://localhost:${PORT}/health`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+};
+
+startServer();
 
 export default app;
