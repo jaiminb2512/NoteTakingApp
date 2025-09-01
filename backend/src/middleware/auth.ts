@@ -14,6 +14,7 @@ declare global {
 }
 
 export const auth = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
+
     try {
         const token = req.header('Authorization')?.replace('Bearer ', '');
 
@@ -31,7 +32,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction): Pro
         // Attach user and token to request object
         req.user = user;
         req.token = token;
-        return next();
+        next();
     } catch (error) {
         return ApiResponseUtil.unauthorized(res, 'Invalid authentication token');
     }

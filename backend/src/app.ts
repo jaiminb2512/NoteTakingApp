@@ -5,6 +5,7 @@ import helmet from 'helmet';
 
 // Import routes
 import userRoutes from './routes/user.routes';
+import noteRoutes from './routes/note.routes';
 
 // Import utilities
 import ApiResponseUtil from './utils/apiResponse';
@@ -28,6 +29,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // API Routes
 app.use('/api/users', userRoutes);
+app.use('/api/notes', noteRoutes);
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
