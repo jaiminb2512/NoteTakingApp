@@ -22,8 +22,17 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        message: 'Server is running',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Routes
-app.use('/api', routes);
+app.use('/', routes);
 
 // Database connection (optimized for serverless)
 let isConnected = false;

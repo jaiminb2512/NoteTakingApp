@@ -81,7 +81,7 @@ class UserService {
         await user.save();
 
         // Generate token
-        const token = generateAuthToken(user._id);
+        const token = generateAuthToken(user._id as string);
 
         return { user, token };
     }

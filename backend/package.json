@@ -20,7 +20,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@sendinblue/client": "^3.3.1",
+        "@getbrevo/brevo": "^2.5.0",
         "@types/compression": "^1.8.1",
         "@types/morgan": "^1.9.10",
         "bcrypt": "^5.1.0",
@@ -31,10 +31,11 @@
         "express-validator": "^7.0.1",
         "helmet": "^7.0.0",
         "jsonwebtoken": "^9.0.2",
-        "mongoose": "^7.5.0",
+        "mongoose": "^8.0.0",
         "morgan": "^1.10.1",
         "nodemailer": "^6.9.4",
-        "nodemon": "^3.1.10"
+        "nodemon": "^3.1.10",
+        "uuid": "^10.0.0"
     },
     "devDependencies": {
         "@types/bcrypt": "^5.0.0",
@@ -43,6 +44,7 @@
         "@types/jsonwebtoken": "^9.0.2",
         "@types/node": "^20.5.0",
         "@types/nodemailer": "^6.4.9",
+        "@types/uuid": "^10.0.0",
         "@vercel/node": "^3.0.0",
         "ts-node-dev": "^2.0.0",
         "typescript": "^5.1.6"
