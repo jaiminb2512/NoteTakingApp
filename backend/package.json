@@ -1,0 +1,48 @@
+{
+    "name": "note-taking-app-backend",
+    "version": "1.0.0",
+    "description": "Backend server for the note-taking application",
+    "main": "dist/app.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/app.js",
+        "dev": "nodemon src/app.ts",
+        "test": "jest"
+    },
+    "keywords": [
+        "notes",
+        "api",
+        "typescript",
+        "express",
+        "mongodb"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@sendinblue/client": "^3.3.1",
+        "@types/compression": "^1.8.1",
+        "@types/morgan": "^1.9.10",
+        "bcrypt": "^5.1.0",
+        "compression": "^1.8.1",
+        "cors": "^2.8.5",
+        "dotenv": "^16.6.1",
+        "express": "^4.18.2",
+        "express-validator": "^7.0.1",
+        "helmet": "^7.0.0",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^7.5.0",
+        "morgan": "^1.10.1",
+        "nodemailer": "^6.9.4",
+        "nodemon": "^3.1.10"
+    },
+    "devDependencies": {
+        "@types/bcrypt": "^5.0.0",
+        "@types/cors": "^2.8.13",
+        "@types/express": "^4.17.17",
+        "@types/jsonwebtoken": "^9.0.2",
+        "@types/node": "^20.5.0",
+        "@types/nodemailer": "^6.4.9",
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.1.6"
+    }
+}
