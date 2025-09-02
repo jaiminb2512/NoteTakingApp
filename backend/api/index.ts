@@ -32,7 +32,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/', routes);
+app.use('/api', routes);
 
 // Database connection (optimized for serverless)
 let isConnected = false;
